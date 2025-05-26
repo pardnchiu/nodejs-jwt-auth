@@ -1,6 +1,6 @@
 {
   "name": "@pardnchiu/jwt-auth",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "A comprehensive JWT authentication system with refresh token management for Node.js applications",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -45,7 +45,9 @@
   },
   "homepage": "https://github.com/pardnchiu/nodejs-jwt-auth#readme",
   "dependencies": {
-    "jsonwebtoken": "^9.0.0",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/redis": "^4.0.11",
+    "jsonwebtoken": "^9.0.2",
     "redis": "^4.6.0"
   },
   "devDependencies": {
