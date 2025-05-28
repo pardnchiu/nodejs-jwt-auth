@@ -418,23 +418,23 @@ export class JWTAuth {
 
     refresh_id = refresh_id || refreshId!;
 
-    res.clearCookie(this.config.AccessTokenCookieKey, {
-      httpOnly: true,
-      secure: this.config.isProd,
-      sameSite: this.config.isProd ? "none" : "lax",
-      path: "/",
-      domain: this.config.isProd ? this.config.domain : "localhost"
-    });
-
-    res.clearCookie(this.config.RefreshTokenCookieKey, {
-      httpOnly: true,
-      secure: this.config.isProd,
-      sameSite: this.config.isProd ? "none" : "lax",
-      path: "/",
-      domain: this.config.isProd ? this.config.domain : "localhost"
-    });
-
     try {
+      await res.clearCookie(this.config.AccessTokenCookieKey, {
+        httpOnly: true,
+        secure: this.config.isProd,
+        sameSite: this.config.isProd ? "none" : "lax",
+        path: "/",
+        domain: this.config.isProd ? this.config.domain : "localhost"
+      });
+
+      await res.clearCookie(this.config.RefreshTokenCookieKey, {
+        httpOnly: true,
+        secure: this.config.isProd,
+        sameSite: this.config.isProd ? "none" : "lax",
+        path: "/",
+        domain: this.config.isProd ? this.config.domain : "localhost"
+      });
+
       const result = await this.redisClient.get("refresh:" + refresh_id);
 
       if (!result) {
