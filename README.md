@@ -121,17 +121,17 @@
     try {
       const result = await JWTAuth.VerifyJWT(req, res);
       
-      if (typeof result === "number") {
-        // Authentication failed, result is HTTP status code (401/400)
+      if (!result.isAuth) {
+        // Authentication failed
         return res.status(result).json({ 
-          error: result === 401 ? "Unauthorized" : "Bad Request" 
+          error: result.isError ? "Bad Request" : "Unauthorized" 
         });
       }
       
-      // Authentication success, result is user data
+      // Authentication success, user result.data to get user data
       res.json({
         message: "Protected resource accessed",
-        user: result
+        user: result.data
       });
     } catch (error) {
       res.status(500).json({ error: error.message });

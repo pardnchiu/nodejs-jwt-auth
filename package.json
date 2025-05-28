@@ -1,6 +1,6 @@
 {
   "name": "@pardnchiu/jwt-auth",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "A JWT authentication package providing both Access Token and Refresh Token mechanisms, featuring fingerprint recognition, Redis storage, and automatic refresh functionality.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
