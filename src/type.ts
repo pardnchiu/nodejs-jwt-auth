@@ -18,6 +18,13 @@ export interface Config {
   RefreshTokenCookieKey: string;
 }
 
+export interface VerifyResult {
+  data?: AuthData;
+  isAuth: boolean;
+  isError: boolean;
+  isGuest: boolean;
+}
+
 export interface AuthData {
   id: string;
   name: string;

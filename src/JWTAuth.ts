@@ -5,7 +5,7 @@ import { decode, sign, verify } from "jsonwebtoken";
 import { createClient, RedisClientType } from "redis";
 import CreateFingerprint from "./CreateFingerprint";
 import CreateRefreshId from "./CreateRefreshId";
-import { AuthData, Config, JWTPayload, RefreshData, TokenResult } from "./type";
+import { AuthData, Config, JWTPayload, RefreshData, TokenResult, VerifyResult } from "./type";
 
 export class JWTAuth {
   private static config: Config | null = null;
@@ -190,7 +190,7 @@ export class JWTAuth {
     return;
   }
 
-  public static async VerifyJWT(req: Request, res: Response): Promise<AuthData | number> {
+  public static async VerifyJWT(req: Request, res: Response): Promise<VerifyResult> {
     if (this.redisClient == null || this.config == null || this.config.publicKey == null || this.config.privateKey == null) {
       throw new Error("JWTAuth not initialized. Call JWTAuth.init() first.");
     };
@@ -201,7 +201,11 @@ export class JWTAuth {
     const dateNow = new Date();
 
     if (await this.redisClient.get("revoke:" + accessToken)) {
-      return 401;
+      return {
+        isAuth: false,
+        isError: false,
+        isGuest: true
+      };
     }
 
     try {
@@ -210,7 +214,11 @@ export class JWTAuth {
       let refreshData: RefreshData = {} as RefreshData;
 
       if (accessToken == null && refresh_id == null) {
-        return 401;
+        return {
+          isAuth: false,
+          isError: false,
+          isGuest: true
+        };
       }
       else if (accessToken == null && refresh_id != null) {
         isExpired = true;
@@ -219,7 +227,11 @@ export class JWTAuth {
           refreshData = await this.getRefreshData(req) || {} as RefreshData;
         } catch (err: any) {
           console.error(err.message);
-          return err.message === "refresh data 不存在" ? 401 : 400;
+          return {
+            isAuth: false,
+            isError: err.message === "refresh data 不存在",
+            isGuest: true
+          };
         }
       }
       else if (accessToken != null) {
@@ -227,7 +239,11 @@ export class JWTAuth {
           const verifyJWT = verify(accessToken, this.config.publicKey) as JWTPayload
 
           if (verifyJWT.fp !== fp) {
-            return 400;
+            return {
+              isAuth: false,
+              isError: true,
+              isGuest: true
+            };
           }
 
           authData = {
@@ -241,7 +257,11 @@ export class JWTAuth {
           };
         } catch (err: any) {
           if (err.message !== "jwt expired") {
-            return 400;
+            return {
+              isAuth: false,
+              isError: true,
+              isGuest: true
+            };
           }
 
           isExpired = true;
@@ -253,24 +273,41 @@ export class JWTAuth {
             };
 
             if (decodeJWT.fp !== fp) {
-              return 400;
+              return {
+                isAuth: false,
+                isError: true,
+                isGuest: true
+              };
             }
 
             refresh_id = decodeJWT.refresh_id;
             refreshData = await this.getRefreshData(req, decodeJWT.refresh_id) || {} as RefreshData;
           } catch (err: any) {
             console.error(err.message);
-            return err.message === "refresh data 不存在" ? 401 : 400;
+            return {
+              isAuth: false,
+              isError: err.message === "refresh data 不存在",
+              isGuest: true
+            };
           }
         }
       }
 
       if (!isExpired) {
-        return authData;
+        return {
+          data: authData,
+          isAuth: true,
+          isError: false,
+          isGuest: false
+        };
       }
 
       if (!refreshData.data.id) {
-        return 401;
+        return {
+          isAuth: false,
+          isError: false,
+          isGuest: true
+        };
       }
 
       try {
@@ -282,7 +319,11 @@ export class JWTAuth {
         const result = await this.config.checkUserExists(refreshData.data.id);
 
         if (!result) {
-          return 401;
+          return {
+            isAuth: false,
+            isError: false,
+            isGuest: true
+          };
         }
 
         authData = refreshData.data;
@@ -324,14 +365,27 @@ export class JWTAuth {
           domain: this.config.isProd ? this.config.domain : "localhost"
         });
 
-        return authData;
+        return {
+          data: authData,
+          isAuth: true,
+          isError: false,
+          isGuest: false
+        };
       } catch (err: any) {
         console.error(err.message);
-        return err.message === "refresh data 不存在" ? 401 : 400;
+        return {
+          isAuth: false,
+          isError: err.message === "refresh data 不存在",
+          isGuest: true
+        };
       }
     } catch (err: any) {
       console.error(err.message);
-      return 400;
+      return {
+        isAuth: false,
+        isError: true,
+        isGuest: true
+      };
     }
   }
 
@@ -450,6 +504,15 @@ export class JWTAuth {
         console.error(err);
       }
     }
+  }
+
+  public static GetAuth(auth: AuthData | number) {
+    return {
+      ...(typeof auth === "number" ? {} : auth),
+      isAuth: auth != 400 && auth != 401,
+      isError: auth == 400,
+      isGuest: auth == 401 || auth == 400
+    };
   }
 }
 
